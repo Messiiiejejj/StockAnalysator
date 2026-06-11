@@ -138,7 +138,7 @@ function App() {
 
   const fetchIndices = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/indices');
+      const response = await axios.get('https://stock-market-backend-6i4h.onrender.com/api/indices');
       if (response.data && response.data.length > 0) {
         setIndices(response.data);
       }
@@ -150,7 +150,7 @@ function App() {
   const fetchFavoritesData = async () => {
     try {
       const results = await Promise.all(
-        favorites.map(s => axios.get(`http://localhost:3001/api/stock/${s}`).catch(() => null))
+        favorites.map(s => axios.get(`https://stock-market-backend-6i4h.onrender.com/api/stock/${s}`).catch(() => null))
       );
       const data = results
         .filter(r => r !== null && r.data)
@@ -177,7 +177,7 @@ function App() {
 
   const fetchTrending = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/trending');
+      const response = await axios.get('https://stock-market-backend-6i4h.onrender.com/api/trending');
       setTrending(response.data);
     } catch (err) {
       console.error('Failed to fetch trending', err);
@@ -186,7 +186,7 @@ function App() {
 
   const fetchMovers = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/movers');
+      const response = await axios.get('https://stock-market-backend-6i4h.onrender.com/api/movers');
       setMovers(response.data);
     } catch (err) {
       console.error('Failed to fetch movers', err);
@@ -195,7 +195,7 @@ function App() {
 
   const fetchMarketNews = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/market-news');
+      const response = await axios.get('https://stock-market-backend-6i4h.onrender.com/api/market-news');
       setMarketNews(response.data);
     } catch (err) {
       console.error('Failed to fetch market news', err);
@@ -209,7 +209,7 @@ function App() {
     setChartTimeframe('1Y');
     window.scrollTo({ top: 0, behavior: 'smooth' });
     try {
-      const response = await axios.get(`http://localhost:3001/api/stock/${symbol}`);
+      const response = await axios.get(`https://stock-market-backend-6i4h.onrender.com/api/stock/${symbol}`);
       setStock(response.data);
     } catch (err) {
       setError('Stock not found. Please try another ticker or company name.');
