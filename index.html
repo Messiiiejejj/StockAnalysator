@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexTrade Stock Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --positive: #22c55e;
+            --negative: #ef4444;
+            --neutral: #64748b;
+            --border: rgba(255, 255, 255, 0.1);
+            --sidebar-width: 300px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        .glass-panel {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+        }
+
+        /* Scrolling Ticker Tape */
+        .ticker-tape-container {
+            width: 100%;
+            background: #0f172a;
+            border-bottom: 1px solid var(--border);
+            overflow: hidden;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            z-index: 1001;
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .ticker-tape {
+            display: flex;
+            white-space: nowrap;
+            animation: scroll 40s linear infinite;
+        }
+
+        .ticker-tape-content {
+            display: flex;
+            gap: 3rem;
+            padding-right: 3rem;
+        }
+
+        .ticker-item {
+            font-family: monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+
+        @keyframes scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 2rem;
+            gap: 2rem;
+            padding: 1rem 2rem;
+            position: relative;
+            z-index: 100;
+            border-radius: 1rem;
+        }
+
+        .sticky-header {
+            position: sticky;
+            top: 1rem;
+        }
+
+        .logo {
+            position: absolute;
+            left: 2rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--accent-blue);
+        }
+
+        /* Tab Navigation */
+        .tab-navigation-premium {
+            display: flex;
+            gap: 2.5rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 2rem;
+            padding: 0 1rem;
+        }
+
+        .tab-link {
+            background: none;
+            border: none;
+            padding: 0.75rem 0;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            cursor: pointer;
+            position: relative;
+            transition: color 0.2s;
+        }
+
+        .tab-link.active { color: white; }
+        .tab-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--accent-blue);
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+
+        /* AI Sentiment Bar */
+        .sentiment-indicator-box { width: 220px; }
+        .sentiment-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 0.4rem;
+        }
+        .sentiment-bar-track {
+            height: 6px;
+            background: #1e293b;
+            border-radius: 3px;
+            position: relative;
+        }
+        .sentiment-bar-gradient {
+            position: absolute;
+            inset: 0;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #ef4444 0%, #64748b 50%, #22c55e 100%);
+        }
+        .sentiment-marker {
+            position: absolute;
+            top: 50%;
+            width: 4px;
+            height: 14px;
+            background: white;
+            border-radius: 2px;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+            transform: translate(-50%, -50%);
+            transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Technicals Grid */
+        .technicals-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+        .tech-card { padding: 2rem; text-align: center; }
+        .tech-badge {
+            display: inline-block;
+            padding: 0.4rem 1.25rem;
+            border-radius: 2rem;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+        .tech-badge.bullish { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+        .tech-badge.bearish { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+        .tech-badge.neutral { background: rgba(100, 116, 139, 0.15); color: #94a3b8; }
+
+        /* Dashboard Utilities */
+        .app-container { max-width: 1600px; margin: 0 auto; padding: 2rem; }
+        .content-layout { display: flex; gap: 2.5rem; }
+        .fade-in { animation: slideUp 0.4s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .positive { color: var(--positive) !important; }
+        .negative { color: var(--negative) !important; }
+        .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-blue-500 selection:text-white">
+
+    <div class="app-container">
+        <!-- Ticker Tape -->
+        <div id="ui-ticker-tape-container" class="ticker-tape-container glass-panel">
+            <div id="ui-ticker-tape" class="ticker-tape">
+                <div class="ticker-tape-content">
+                    <div class="ticker-item">S&P 500 <span class="positive">--</span></div>
+                    <div class="ticker-item">NASDAQ <span class="positive">--</span></div>
+                    <div class="ticker-item">DOW J <span class="negative">--</span></div>
+                    <div class="ticker-item">RUSSELL <span class="positive">--</span></div>
+                    <div class="ticker-item">BITCOIN <span class="positive">--</span></div>
+                    <div class="ticker-item">GOLD <span class="negative">--</span></div>
+                </div>
+                <div class="ticker-tape-content">
+                    <div class="ticker-item">S&P 500 <span class="positive">--</span></div>
+                    <div class="ticker-item">NASDAQ <span class="positive">--</span></div>
+                    <div class="ticker-item">DOW J <span class="negative">--</span></div>
+                    <div class="ticker-item">RUSSELL <span class="positive">--</span></div>
+                    <div class="ticker-item">BITCOIN <span class="positive">--</span></div>
+                    <div class="ticker-item">GOLD <span class="negative">--</span></div>
+                </div>
+            </div>
+        </div>
+
+        <header class="header sticky-header glass-panel">
+            <div class="logo" onclick="location.reload()" style="cursor: pointer;">NexTrade.</div>
+            <form id="search-form" style="position: relative; flex: 1; max-width: 600px; display: flex;">
+                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary);"></i>
+                <input type="text" id="search-input" 
+                    class="block w-full pl-10 pr-3 py-2 border border-slate-600 rounded-lg bg-slate-800 text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm" 
+                    placeholder="Search company or ticker (e.g. AAPL, S&P 500)..." style="width: 100%; border-radius: 0.75rem 0 0 0.75rem; padding: 0.75rem 1rem 0.75rem 3rem;">
+                <button type="submit" style="background: var(--accent-blue); color: white; border: none; border-radius: 0 0.75rem 0.75rem 0; padding: 0 1.5rem; font-weight: 600; cursor: pointer;">Analyze</button>
+            </form>
+        </header>
+
+        <div class="content-layout">
+            <!-- Left Sidebar -->
+            <aside id="left-sidebar" class="w-[300px] flex-shrink-0 space-y-8">
+                <h3 style="font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700;">Top Movers</h3>
+                <div id="movers-list" class="flex flex-col gap-3"></div>
+            </aside>
+
+            <!-- Main Content -->
+            <div class="flex-1 min-w-0">
+                <div id="welcome-state" class="space-y-6">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; border-bottom: 1px solid #1e293b; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+                        <i class="fa-regular fa-newspaper" style="color: var(--accent-blue);"></i>
+                        <h2 style="font-size: 1.5rem; font-weight: 800;">Trending Market News</h2>
+                    </div>
+                    <div id="market-news-grid" class="grid grid-cols-2 gap-6"></div>
+                    
+                    <div id="favorites-section" class="hidden mt-12">
+                        <h3 style="font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; margin-bottom: 1.5rem;">Your Favorites</h3>
+                        <div id="favorites-grid" class="grid grid-cols-2 gap-4"></div>
+                    </div>
+                </div>
+
+                <div id="loading-state" class="hidden text-center py-20">
+                    <i class="fa-solid fa-circle-notch fa-spin text-blue-500 text-3xl mb-4"></i>
+                    <p class="text-slate-400">Scanning global markets and AI sentiment...</p>
+                </div>
+
+                <div id="dashboard-state" class="hidden space-y-8">
+                    <div class="flex justify-between items-start border-b border-slate-700/50 pb-6">
+                        <div>
+                            <h1 id="ui-company-name" class="text-4xl font-black text-white">--</h1>
+                            <div class="flex items-center gap-3 mt-3">
+                                <span id="ui-ticker" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-md text-sm font-mono border border-slate-700 font-bold uppercase">--</span>
+                                <button id="fav-button" class="text-slate-400 hover:text-yellow-400"><i id="fav-icon" class="fa-regular fa-star text-2xl"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-4">
+                        <div class="glass-panel p-5"><div id="ui-label-1" class="text-slate-400 text-[10px] uppercase font-bold mb-2">Price</div><div id="ui-val-1" class="text-2xl font-black font-mono">--</div><div id="ui-sub-1" class="text-[10px] font-mono mt-1">--</div></div>
+                        <div class="glass-panel p-5"><div id="ui-label-2" class="text-slate-400 text-[10px] uppercase font-bold mb-2">Range</div><div id="ui-val-2" class="text-2xl font-black font-mono">--</div><div id="ui-sub-2" class="text-[10px] font-mono mt-1">--</div></div>
+                        <div class="glass-panel p-5"><div id="ui-label-3" class="text-slate-400 text-[10px] uppercase font-bold mb-2">Market Cap</div><div id="ui-val-3" class="text-2xl font-black font-mono">--</div><div id="ui-sub-3" class="text-[10px] font-mono mt-1">--</div></div>
+                        <div class="glass-panel p-5"><div id="ui-label-4" class="text-slate-400 text-[10px] uppercase font-bold mb-2">P/E</div><div id="ui-val-4" class="text-2xl font-black font-mono">--</div><div id="ui-sub-4" class="text-[10px] font-mono mt-1">--</div></div>
+                    </div>
+
+                    <div id="tab-nav" class="tab-navigation-premium">
+                        <button class="tab-link active" data-tab="overview">Overview</button>
+                        <button class="tab-link" data-tab="technicals">Technicals</button>
+                        <button class="tab-link" data-tab="news">News</button>
+                    </div>
+
+                    <div id="tab-overview" class="tab-content space-y-8">
+                        <div class="glass-panel p-8 relative overflow-hidden">
+                            <div class="flex justify-between items-center mb-6">
+                                <div class="flex items-center gap-3"><i class="fa-solid fa-zap text-blue-400 text-xl"></i><h2 class="text-2xl font-bold">AI Market Sentiment</h2></div>
+                                <div class="sentiment-indicator-box">
+                                    <div class="sentiment-labels"><span>Bearish</span><span>Bullish</span></div>
+                                    <div class="sentiment-bar-track"><div class="sentiment-bar-gradient"></div><div id="ui-sentiment-marker" class="sentiment-marker left-1/2"></div></div>
+                                </div>
+                            </div>
+                            <p id="ui-market-drivers" class="text-slate-300 leading-relaxed text-lg font-light">--</p>
+                        </div>
+                        <div class="glass-panel p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="font-bold flex items-center gap-2"><i class="fa-solid fa-chart-line text-blue-400"></i> Performance</h3>
+                                <div id="timeframe-toggles" class="flex bg-slate-900/50 p-1 rounded-lg border border-slate-700/50">
+                                    <button class="px-3 py-1 text-[10px] font-bold rounded-md text-slate-400" data-tf="1W">1W</button>
+                                    <button class="px-3 py-1 text-[10px] font-bold rounded-md text-slate-400" data-tf="1M">1M</button>
+                                    <button class="px-3 py-1 text-[10px] font-bold rounded-md text-slate-400" data-tf="3M">3M</button>
+                                    <button class="px-3 py-1 text-[10px] font-bold rounded-md bg-blue-600 text-white" data-tf="1Y">1Y</button>
+                                </div>
+                            </div>
+                            <div class="h-64"><canvas id="performanceChart"></canvas></div>
+                        </div>
+                        <div id="ui-competitors-list" class="grid grid-cols-2 gap-6"></div>
+                        <div class="glass-panel p-8 border-l-4 border-green-500 rounded-3xl"><h3 class="font-bold text-white mb-2 flex items-center gap-2"><i class="fa-solid fa-trophy text-green-500"></i> Best in Class Analysis</h3><p id="ui-comp-summary" class="text-slate-300">--</p></div>
+                    </div>
+
+                    <div id="tab-technicals" class="tab-content hidden space-y-8">
+                        <div class="technicals-grid">
+                            <div class="glass-panel tech-card"><div class="tech-label">SMA 20</div><div id="ui-sma-val" class="tech-value">--</div><div id="ui-sma-badge" class="tech-badge">--</div></div>
+                            <div class="glass-panel tech-card"><div class="tech-label">RSI 14</div><div id="ui-rsi-val" class="tech-value">--</div><div id="ui-rsi-badge" class="tech-badge">--</div></div>
+                            <div class="glass-panel tech-card"><div class="tech-label">MACD</div><div id="ui-macd-val" class="tech-value">--</div><div id="ui-macd-badge" class="tech-badge">--</div></div>
+                        </div>
+                        <div class="glass-panel p-8"><h3 class="font-bold mb-4">Institutional Outlook</h3><p id="ui-tech-outlook" class="text-slate-300 leading-relaxed font-light">--</p></div>
+                    </div>
+
+                    <div id="tab-news" class="tab-content hidden"><div id="ui-stock-news-grid" class="grid grid-cols-2 gap-6"></div></div>
+                </div>
+            </div>
+
+            <!-- Right Sidebar -->
+            <aside class="w-[300px] flex-shrink-0 space-y-8">
+                <h3 style="font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700;">Famous Stocks</h3>
+                <div id="famous-stocks" class="flex flex-col gap-3">
+                    <div class="glass-panel p-4 rounded-xl cursor-pointer hover:border-blue-500/50 flex justify-between items-center group" onclick="analyze('AAPL')">
+                        <div><div class="font-bold text-sm">AAPL</div><div class="text-[10px] text-slate-500 font-bold uppercase">Apple</div></div>
+                        <i class="fa-solid fa-chevron-right text-slate-700 group-hover:text-blue-500 text-xs"></i>
+                    </div>
+                    <div class="glass-panel p-4 rounded-xl cursor-pointer hover:border-blue-500/50 flex justify-between items-center group" onclick="analyze('NVDA')">
+                        <div><div class="font-bold text-sm">NVDA</div><div class="text-[10px] text-slate-500 font-bold uppercase">NVIDIA</div></div>
+                        <i class="fa-solid fa-chevron-right text-slate-700 group-hover:text-blue-500 text-xs"></i>
+                    </div>
+                    <div class="glass-panel p-4 rounded-xl cursor-pointer hover:border-blue-500/50 flex justify-between items-center group" onclick="analyze('TSLA')">
+                        <div><div class="font-bold text-sm">TSLA</div><div class="text-[10px] text-slate-500 font-bold uppercase">Tesla</div></div>
+                        <i class="fa-solid fa-chevron-right text-slate-700 group-hover:text-blue-500 text-xs"></i>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = "http://localhost:3001/api";
+        const state = { current: null, favs: JSON.parse(localStorage.getItem('nextrade_favorites') || '[]'), chart: null };
+
+        async function fetchAPI(endpoint) {
+            const res = await fetch(`${API_BASE}${endpoint}`);
+            if (!res.ok) throw new Error("API Connection Failed");
+            return res.json();
+        }
+
+        async function init() {
+            try {
+                const [movers, news, indices] = await Promise.all([fetchAPI('/movers'), fetchAPI('/market-news'), fetchAPI('/indices')]);
+                renderMovers(movers);
+                renderNews(news, document.getElementById('market-news-grid'));
+                renderIndices(indices);
+                updateFavsUI();
+            } catch (e) { console.error(e); }
+        }
+
+        function renderIndices(indices) {
+            const tape = document.getElementById('ui-ticker-tape');
+            const html = indices.map(idx => `
+                <div class="ticker-item">${idx.name} <span class="${idx.change >= 0 ? 'positive' : 'negative'}">${idx.price.toLocaleString()} (${idx.change >= 0 ? '+' : ''}{idx.change.toFixed(2)}%)</span></div>
+            `).join('');
+            tape.innerHTML = `<div class="ticker-tape-content">${html}</div><div class="ticker-tape-content">${html}</div>`;
+        }
+
+        function renderMovers(movers) {
+            document.getElementById('movers-list').innerHTML = movers.map(s => `
+                <div class="glass-panel p-4 rounded-xl cursor-pointer hover:border-blue-500/50 flex justify-between items-center" onclick="analyze('${s.symbol}')">
+                    <div class="font-black text-sm">${s.symbol}</div>
+                    <div class="text-right"><div class="text-[11px] font-black">$${s.price.toFixed(2)}</div><div class="text-[10px] font-black ${s.change >= 0 ? 'positive' : 'negative'}">${s.change >= 0 ? '+' : ''}${s.change.toFixed(2)}%</div></div>
+                </div>
+            `).join('');
+        }
+
+        function renderNews(items, target) {
+            target.innerHTML = items.map(n => `
+                <a href="${n.link}" target="_blank" class="glass-panel p-5 rounded-xl hover:-translate-y-1 hover:border-blue-500/50 transition-all duration-200 block group flex flex-col h-full">
+                    <div class="text-[10px] font-bold text-blue-400 uppercase mb-2">${n.publisher}</div>
+                    <h3 class="font-bold text-white group-hover:text-blue-300 line-clamp-3 leading-tight mb-4 flex-grow">${n.title}</h3>
+                    <div class="flex justify-between items-center text-[10px] text-slate-500 font-mono pt-4 border-t border-slate-700/50">
+                        <span>${n.date}</span><span class="text-blue-500 font-bold">READ INTEL →</span>
+                    </div>
+                </a>
+            `).join('');
+        }
+
+        async function analyze(symbol) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.getElementById('welcome-state').classList.add('hidden');
+            document.getElementById('dashboard-state').classList.add('hidden');
+            document.getElementById('loading-state').classList.remove('hidden');
+            try {
+                const data = await fetchAPI(`/stock/${symbol}`);
+                renderDashboard(data);
+                document.getElementById('loading-state').classList.add('hidden');
+                document.getElementById('dashboard-state').classList.remove('hidden');
+            } catch (e) {
+                document.getElementById('loading-state').classList.add('hidden');
+                document.getElementById('error-state').classList.remove('hidden');
+            }
+        }
+
+        function renderDashboard(data) {
+            state.current = data;
+            document.getElementById('ui-company-name').textContent = data.companyName;
+            document.getElementById('ui-ticker').textContent = data.symbol;
+            document.getElementById('fav-icon').className = state.favs.includes(data.symbol) ? 'fa-solid fa-star text-yellow-400 text-2xl' : 'fa-regular fa-star text-2xl';
+
+            const update = (idx, label, obj) => {
+                document.getElementById(`ui-label-${idx}`).textContent = label;
+                document.getElementById(`ui-val-${idx}`).textContent = obj.value;
+                const sub = document.getElementById(`ui-sub-${idx}`);
+                sub.textContent = obj.comment;
+                sub.className = `text-[10px] font-mono mt-1 ${obj.sentiment === 'positive' ? 'positive' : obj.sentiment === 'negative' ? 'negative' : 'text-slate-500'}`;
+            };
+
+            const isF = data.quoteType === 'FUTURE' || data.quoteType === 'INDEX';
+            update(1, "Live Price", data.price);
+            update(2, "52W Range", data.range52Week);
+            update(3, isF ? "Volume" : "Market Cap", data.marketCap);
+            update(4, isF ? "Day High" : "P/E Ratio", data.peRatio);
+
+            document.getElementById('ui-market-drivers').textContent = data.drivingFactor.description;
+            document.getElementById('ui-market-drivers').className = `text-lg font-light leading-relaxed ${data.drivingFactor.sentiment === 'positive' ? 'text-green-300' : 'text-slate-300'}`;
+            document.getElementById('ui-sentiment-marker').style.left = `${data.aiSentimentScore}%`;
+            document.getElementById('ui-comp-summary').textContent = data.competitiveSummary;
+            document.getElementById('ui-comp-summary').className = data.competitiveSummarySentiment === 'positive' ? 'text-green-300' : 'text-slate-300';
+
+            renderChart(data.chartData);
+            renderNews(data.newsItems, document.getElementById('ui-stock-news-grid'));
+
+            document.getElementById('ui-competitors-list').innerHTML = data.competitors.map(c => `
+                <div class="glass-panel p-6 rounded-2xl">
+                    <div class="mb-4"><span class="px-2 py-0.5 bg-red-900/40 text-red-400 text-[10px] font-bold rounded-full border border-red-800/50 uppercase">${c.badge}</span></div>
+                    <h3 class="text-xl font-bold text-white mb-1">${c.name}</h3>
+                    <p class="text-slate-500 text-[10px] font-bold uppercase mb-4">${c.ticker} - ${c.activity}</p>
+                    <div class="space-y-1 mb-6 border-b border-slate-700/50 pb-4">
+                        <div class="flex justify-between text-xs"><span class="text-slate-500">Market Cap</span><span class="${c.rawMarketCap > data.baseMetrics.marketCap ? 'positive' : 'negative'} font-bold">${c.marketCap}</span></div>
+                        <div class="flex justify-between text-xs"><span class="text-slate-500">Forward P/E</span><span class="${c.rawPE > data.baseMetrics.peRatio ? 'positive' : 'negative'} font-bold">${c.forwardPE}</span></div>
+                    </div>
+                    <p class="text-xs ${c.sentiment === 'negative' ? 'text-red-300' : 'text-slate-400'}">${c.insight}</p>
+                </div>
+            `).join('');
+
+            const t = data.technicalSignals;
+            document.getElementById('ui-sma-val').textContent = t.sma20.value;
+            document.getElementById('ui-sma-badge').textContent = t.sma20.signal;
+            document.getElementById('ui-sma-badge').className = `tech-badge ${t.sma20.signal.toLowerCase()}`;
+            document.getElementById('ui-rsi-val').textContent = t.rsi14.value;
+            document.getElementById('ui-rsi-badge').textContent = t.rsi14.signal;
+            document.getElementById('ui-rsi-badge').className = `tech-badge ${t.rsi14.signal.toLowerCase()}`;
+            document.getElementById('ui-macd-val').textContent = t.macd.value;
+            document.getElementById('ui-macd-badge').textContent = t.macd.signal;
+            document.getElementById('ui-macd-badge').className = `tech-badge ${t.macd.signal.toLowerCase()}`;
+            document.getElementById('ui-tech-outlook').textContent = t.outlook;
+
+            document.querySelector('[data-tab="overview"]').click();
+        }
+
+        function renderChart(data) {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+            const grad = ctx.createLinearGradient(0,0,0,400); grad.addColorStop(0, 'rgba(59,130,246,0.3)'); grad.addColorStop(1, 'transparent');
+            chartInstance = new Chart(ctx, {
+                type: 'line', data: { labels: data.map(d=>''), datasets: [{ data: data.map(d=>d.close), borderColor: '#3b82f6', fill: true, backgroundColor: grad, tension: 0.4, pointRadius: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#475569', font: { size: 10 } } } } }
+            });
+        }
+
+        document.getElementById('tab-nav').onclick = (e) => {
+            if (!e.target.dataset.tab) return;
+            document.querySelectorAll('.tab-link').forEach(l => l.classList.remove('active'));
+            e.target.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+            document.getElementById(`tab-${e.target.dataset.tab}`).classList.remove('hidden');
+        };
+
+        document.getElementById('timeframe-toggles').onclick = (e) => {
+            if (!e.target.dataset.tf) return;
+            document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active', 'bg-blue-600', 'text-white'));
+            e.target.classList.add('active', 'bg-blue-600', 'text-white');
+            if (state.current) renderChart(state.current.chartData);
+        };
+
+        document.getElementById('fav-button').onclick = () => {
+            const s = state.current.symbol;
+            if (state.favs.includes(s)) state.favs = state.favs.filter(x => x !== s);
+            else state.favs.push(s);
+            localStorage.setItem('nextrade_favorites', JSON.stringify(state.favs));
+            document.getElementById('fav-icon').className = state.favs.includes(s) ? 'fa-solid fa-star text-yellow-400 text-2xl' : 'fa-regular fa-star text-2xl';
+            updateFavsUI();
+        };
+
+        async function updateFavsUI() {
+            const grid = document.getElementById('favorites-grid');
+            if (state.favs.length === 0) { document.getElementById('favorites-section').classList.add('hidden'); return; }
+            document.getElementById('favorites-section').classList.remove('hidden');
+            grid.innerHTML = state.favs.map(s => `<div class="glass-panel p-5 rounded-2xl cursor-pointer hover:border-blue-500/50 flex justify-between items-center group" onclick="analyze('${s}')"><div class="font-black text-lg group-hover:text-blue-400">${s}</div><i class="fa-solid fa-chevron-right text-slate-700 group-hover:text-blue-500 text-xs"></i></div>`).join('');
+        }
+
+        document.getElementById('search-form').onsubmit = (e) => { e.preventDefault(); analyze(document.getElementById('search-input').value.toUpperCase()); };
+
+        init();
+    </script>
+</body>
+</html>
