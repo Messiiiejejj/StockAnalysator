@@ -3,14 +3,6 @@ const cors = require('cors');
 const YahooFinance = require('yahoo-finance2').default;
 const yahooFinance = new YahooFinance();
 
-// Disable validation to prevent screener API from failing on unexpected Yahoo fields
-yahooFinance.setGlobalConfig({
-    validation: {
-        logErrors: false,
-        throwErrors: false
-    }
-});
-
 const finnhub = require('finnhub');
 require('dotenv').config();
 
@@ -488,7 +480,7 @@ app.get('/api/market-news', async (req, res) => {
 
 app.get('/api/gainers', async (req, res) => {
     try {
-        const result = await yahooFinance.screener({ scrIds: 'day_gainers', count: 5, region: 'US' });
+        const result = await yahooFinance.screener({ scrIds: 'day_gainers', count: 5, region: 'US' }, {}, { validateResult: false });
         let gainers = (result.quotes || [])
             .filter(q => q.regularMarketChangePercent > 0)
             .map(q => ({
@@ -524,7 +516,7 @@ app.get('/api/gainers', async (req, res) => {
 
 app.get('/api/losers', async (req, res) => {
     try {
-        const result = await yahooFinance.screener({ scrIds: 'day_losers', count: 5, region: 'US' });
+        const result = await yahooFinance.screener({ scrIds: 'day_losers', count: 5, region: 'US' }, {}, { validateResult: false });
         let losers = (result.quotes || [])
             .filter(q => q.regularMarketChangePercent < 0)
             .map(q => ({
