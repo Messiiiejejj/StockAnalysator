@@ -425,7 +425,7 @@ function App() {
         <aside className="left-sidebar fade-in">
           <h3 className="section-title">Top Bullish</h3>
           <div className="trending-list" style={{ marginBottom: '2.5rem' }}>
-            {gainers.map((s) => (
+            {gainers.filter(s => s.change > 0).map((s) => (
               <div key={s.symbol} className="trending-item glass-panel" onClick={() => fetchStock(s.symbol)}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                   <span className="trending-symbol">{s.symbol}</span>
@@ -442,7 +442,7 @@ function App() {
 
           <h3 className="section-title">Top Bearish</h3>
           <div className="trending-list">
-            {losers.map((s) => (
+            {losers.filter(s => s.change < 0).map((s) => (
               <div key={s.symbol} className="trending-item glass-panel" onClick={() => fetchStock(s.symbol)}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                   <span className="trending-symbol">{s.symbol}</span>

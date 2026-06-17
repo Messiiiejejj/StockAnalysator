@@ -492,11 +492,15 @@ app.get('/api/gainers', async (req, res) => {
             .slice(0, 5);
 
         if (gainers.length === 0) {
-            // Fallback to a broader set of active stocks
-            const symbols = ['NVDA', 'TSLA', 'AMD', 'AAPL', 'MSFT', 'META', 'GOOGL', 'AMZN', 'NFLX', 'PLTR'];
+            // Fallback to a much broader set of stocks to find SOME gainers
+            const symbols = [
+                'NVDA', 'TSLA', 'AMD', 'AAPL', 'MSFT', 'META', 'GOOGL', 'AMZN', 'NFLX', 'PLTR',
+                'AMD', 'AVGO', 'COST', 'ADBE', 'LIN', 'TXN', 'INTU', 'AMAT', 'QCOM', 'ISRG',
+                'SBUX', 'MDLZ', 'GILD', 'BKNG', 'VRTX', 'REGN', 'ADP', 'MU', 'PANW', 'SNPS'
+            ];
             const quotes = await Promise.all(symbols.map(s => yahooFinance.quote(s).catch(() => null)));
             gainers = quotes
-                .filter(q => q !== null && q.regularMarketChangePercent > 0)
+                .filter(q => q !== null && q.regularMarketChangePercent !== undefined && q.regularMarketChangePercent > 0)
                 .map(q => ({
                     symbol: q.symbol,
                     name: q.shortName || q.longName,
@@ -517,7 +521,7 @@ app.get('/api/losers', async (req, res) => {
     try {
         const result = await yahooFinance.dailyLosers({ count: 20, region: 'US' });
         let losers = (result.quotes || [])
-            .filter(q => q.regularMarketChangePercent < 0)
+            .filter(q => q.regularMarketChangePercent !== undefined && q.regularMarketChangePercent < 0)
             .map(q => ({
                 symbol: q.symbol,
                 name: q.shortName || q.longName,
@@ -528,11 +532,15 @@ app.get('/api/losers', async (req, res) => {
             .slice(0, 5);
 
         if (losers.length === 0) {
-            // Fallback to a broader set of active stocks
-            const symbols = ['INTC', 'PYPL', 'DIS', 'BA', 'NKE', 'COIN', 'MSTR', 'SHOP', 'GME', 'AMC'];
+            // Fallback to a much broader set of stocks to find SOME losers
+            const symbols = [
+                'INTC', 'PYPL', 'DIS', 'BA', 'NKE', 'COIN', 'MSTR', 'SHOP', 'GME', 'AMC',
+                'XOM', 'CVX', 'JPM', 'BAC', 'WFC', 'C', 'PFE', 'ABBV', 'MRK', 'UNH',
+                'HD', 'LOW', 'T', 'VZ', 'KO', 'PEP', 'PG', 'WMT', 'TGT', 'F'
+            ];
             const quotes = await Promise.all(symbols.map(s => yahooFinance.quote(s).catch(() => null)));
             losers = quotes
-                .filter(q => q !== null && q.regularMarketChangePercent < 0)
+                .filter(q => q !== null && q.regularMarketChangePercent !== undefined && q.regularMarketChangePercent < 0)
                 .map(q => ({
                     symbol: q.symbol,
                     name: q.shortName || q.longName,
