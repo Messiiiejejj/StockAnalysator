@@ -142,6 +142,10 @@ function App() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'overview' | 'technicals' | 'news'>('overview');
   const [chartTimeframe, setChartTimeframe] = useState('1Y');
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024);
+  const [isBullishExpanded, setIsBullishExpanded] = useState(false);
+  const [isBearishExpanded, setIsBearishExpanded] = useState(false);
+  const [isFamousExpanded, setIsFamousExpanded] = useState(false);
 
   React.useEffect(() => {
     fetchTrending();
@@ -150,7 +154,14 @@ function App() {
     fetchMarketNews();
     fetchIndices();
     const tickerInterval = setInterval(fetchIndices, 60000); 
-    return () => clearInterval(tickerInterval);
+
+    const handleResize = () => setIsMobile(window.innerWidth <= 1024);
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      clearInterval(tickerInterval);
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   React.useEffect(() => {
@@ -425,7 +436,10 @@ function App() {
         <aside className="left-sidebar fade-in">
           <h3 className="section-title">Top Bullish</h3>
           <div className="trending-list" style={{ marginBottom: '2.5rem' }}>
-            {gainers.filter(s => s.change > 0).map((s) => (
+            {gainers
+              .filter(s => s.change > 0)
+              .slice(0, (isMobile && !isBullishExpanded) ? 3 : undefined)
+              .map((s) => (
               <div key={s.symbol} className="trending-item glass-panel" onClick={() => fetchStock(s.symbol)}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                   <span className="trending-symbol">{s.symbol}</span>
@@ -438,11 +452,22 @@ function App() {
                 </div>
               </div>
             ))}
+            {isMobile && gainers.filter(s => s.change > 0).length > 3 && (
+              <button 
+                className="expand-btn glass-panel"
+                onClick={() => setIsBullishExpanded(!isBullishExpanded)}
+              >
+                {isBullishExpanded ? 'Show Less' : 'Show More'}
+              </button>
+            )}
           </div>
 
           <h3 className="section-title">Top Bearish</h3>
-          <div className="trending-list">
-            {losers.filter(s => s.change < 0).map((s) => (
+          <div className="trending-list" style={{ marginBottom: isMobile ? '2.5rem' : '0' }}>
+            {losers
+              .filter(s => s.change < 0)
+              .slice(0, (isMobile && !isBearishExpanded) ? 3 : undefined)
+              .map((s) => (
               <div key={s.symbol} className="trending-item glass-panel" onClick={() => fetchStock(s.symbol)}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                   <span className="trending-symbol">{s.symbol}</span>
@@ -455,6 +480,14 @@ function App() {
                 </div>
               </div>
             ))}
+            {isMobile && losers.filter(s => s.change < 0).length > 3 && (
+              <button 
+                className="expand-btn glass-panel"
+                onClick={() => setIsBearishExpanded(!isBearishExpanded)}
+              >
+                {isBearishExpanded ? 'Show Less' : 'Show More'}
+              </button>
+            )}
           </div>
         </aside>
 
@@ -732,7 +765,9 @@ function App() {
         <aside className="trending-sidebar">
           <h3 className="section-title">Famous Stocks</h3>
           <div className="trending-list">
-            {trending.map((s) => (
+            {trending
+              .slice(0, (isMobile && !isFamousExpanded) ? 3 : undefined)
+              .map((s) => (
               <div key={s.symbol} className="trending-item glass-panel" onClick={() => fetchStock(s.symbol)}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                   <span className="trending-symbol">{s.symbol}</span>
@@ -745,6 +780,14 @@ function App() {
                 </div>
               </div>
             ))}
+            {isMobile && trending.length > 3 && (
+              <button 
+                className="expand-btn glass-panel"
+                onClick={() => setIsFamousExpanded(!isFamousExpanded)}
+              >
+                {isFamousExpanded ? 'Show Less' : 'Show More'}
+              </button>
+            )}
           </div>
         </aside>
       </div>
