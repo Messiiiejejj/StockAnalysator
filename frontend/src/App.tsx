@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { Analytics } from "@vercel/analytics/react"
 import { Search, TrendingUp, ShieldAlert, LineChart, Star, Newspaper, Activity, Zap, ArrowUpRight, Info } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -391,6 +392,7 @@ function App() {
 
   return (
     <div className="app-container">
+      <Analytics />
       {/* Ticker Tape */}
       <div className="ticker-tape-container">
         <div className="ticker-tape">
