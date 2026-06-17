@@ -127,7 +127,8 @@ function App() {
   const [query, setQuery] = useState('');
   const [stock, setStock] = useState<StockData | null>(null);
   const [trending, setTrending] = useState<TrendingStock[]>([]);
-  const [movers, setMovers] = useState<TrendingStock[]>([]);
+  const [gainers, setGainers] = useState<TrendingStock[]>([]);
+  const [losers, setLosers] = useState<TrendingStock[]>([]);
   const [indices, setIndices] = useState<IndexData[]>([]);
   const [marketNews, setMarketNews] = useState<NewsItem[]>([]);
   const [favorites, setFavorites] = useState<string[]>(() => {
@@ -142,7 +143,8 @@ function App() {
 
   React.useEffect(() => {
     fetchTrending();
-    fetchMovers();
+    fetchGainers();
+    fetchLosers();
     fetchMarketNews();
     fetchIndices();
     const tickerInterval = setInterval(fetchIndices, 60000); 
@@ -206,12 +208,21 @@ function App() {
     }
   };
 
-  const fetchMovers = async () => {
+  const fetchGainers = async () => {
     try {
-      const response = await axios.get('https://stock-market-backend-6i4h.onrender.com/api/movers');
-      setMovers(response.data);
+      const response = await axios.get('https://stock-market-backend-6i4h.onrender.com/api/gainers');
+      setGainers(response.data);
     } catch (err) {
-      console.error('Failed to fetch movers', err);
+      console.error('Failed to fetch gainers', err);
+    }
+  };
+
+  const fetchLosers = async () => {
+    try {
+      const response = await axios.get('https://stock-market-backend-6i4h.onrender.com/api/losers');
+      setLosers(response.data);
+    } catch (err) {
+      console.error('Failed to fetch losers', err);
     }
   };
 
@@ -410,16 +421,33 @@ function App() {
 
       <div className="content-layout">
         <aside className="left-sidebar fade-in">
-          <h3 className="section-title">Top Daily Gainers</h3>
-          <div className="trending-list">
-            {movers.map((s) => (
+          <h3 className="section-title">Top Bullish</h3>
+          <div className="trending-list" style={{ marginBottom: '2.5rem' }}>
+            {gainers.map((s) => (
               <div key={s.symbol} className="trending-item glass-panel" onClick={() => fetchStock(s.symbol)}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                   <span className="trending-symbol">{s.symbol}</span>
                   <div style={{ textAlign: 'right' }}>
-                    <div className={`trending-price ${s.change >= 0 ? 'positive' : 'negative'}`}>${s.price.toFixed(2)}</div>
-                    <span className={`trending-change ${s.change >= 0 ? 'positive' : 'negative'}`}>
-                      {s.change >= 0 ? '+' : ''}{s.change.toFixed(2)}%
+                    <div className={`trending-price positive`}>${s.price.toFixed(2)}</div>
+                    <span className={`trending-change positive`}>
+                      +{s.change.toFixed(2)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <h3 className="section-title">Top Bearish</h3>
+          <div className="trending-list">
+            {losers.map((s) => (
+              <div key={s.symbol} className="trending-item glass-panel" onClick={() => fetchStock(s.symbol)}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                  <span className="trending-symbol">{s.symbol}</span>
+                  <div style={{ textAlign: 'right' }}>
+                    <div className={`trending-price negative`}>${s.price.toFixed(2)}</div>
+                    <span className={`trending-change negative`}>
+                      {s.change.toFixed(2)}%
                     </span>
                   </div>
                 </div>

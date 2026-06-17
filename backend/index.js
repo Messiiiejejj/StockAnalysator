@@ -477,5 +477,37 @@ app.get('/api/market-news', async (req, res) => {
     }
 });
 
+app.get('/api/gainers', async (req, res) => {
+    try {
+        const result = await yahooFinance.dailyGainers({ count: 5, region: 'US' });
+        const gainers = (result.quotes || []).map(q => ({
+            symbol: q.symbol,
+            name: q.shortName || q.longName,
+            price: q.regularMarketPrice,
+            change: q.regularMarketChangePercent
+        }));
+        res.json(gainers);
+    } catch (error) {
+        console.error('Failed to fetch gainers:', error);
+        res.status(500).json({ error: 'Failed to fetch gainers' });
+    }
+});
+
+app.get('/api/losers', async (req, res) => {
+    try {
+        const result = await yahooFinance.dailyLosers({ count: 5, region: 'US' });
+        const losers = (result.quotes || []).map(q => ({
+            symbol: q.symbol,
+            name: q.shortName || q.longName,
+            price: q.regularMarketPrice,
+            change: q.regularMarketChangePercent
+        }));
+        res.json(losers);
+    } catch (error) {
+        console.error('Failed to fetch losers:', error);
+        res.status(500).json({ error: 'Failed to fetch losers' });
+    }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));
