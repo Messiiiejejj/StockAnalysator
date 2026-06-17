@@ -432,7 +432,7 @@ function App() {
                   <div style={{ textAlign: 'right' }}>
                     <div className={`trending-price positive`}>${s.price.toFixed(2)}</div>
                     <span className={`trending-change positive`}>
-                      +{s.change.toFixed(2)}%
+                      {s.change >= 0 ? '+' : ''}{s.change.toFixed(2)}%
                     </span>
                   </div>
                 </div>
@@ -449,7 +449,7 @@ function App() {
                   <div style={{ textAlign: 'right' }}>
                     <div className={`trending-price negative`}>${s.price.toFixed(2)}</div>
                     <span className={`trending-change negative`}>
-                      {s.change.toFixed(2)}%
+                      {s.change >= 0 ? '+' : ''}{s.change.toFixed(2)}%
                     </span>
                   </div>
                 </div>
