@@ -506,3 +506,115 @@ body {
   .content-layout { gap: 2.5rem; }
   .news-list-new { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* Mobile Responsiveness */
+@media (max-width: 1024px) {
+  .content-layout {
+    flex-direction: column;
+    padding: 1rem;
+  }
+
+  .left-sidebar {
+    width: 100%;
+    order: 2; /* Move sidebar below main content on tablet/mobile */
+  }
+
+  .main-content {
+    order: 1;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  .hero-section {
+    padding: 2rem 1.5rem;
+  }
+
+  .hero-title {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 1.5rem;
+  }
+
+  .search-wrapper {
+    width: 100%;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .stock-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .price-info {
+    text-align: left;
+  }
+
+  .tabs-wrapper {
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+
+  .tab-navigation-premium {
+    width: max-content;
+  }
+
+  .technicals-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .news-list-new {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-card {
+    padding: 1rem;
+  }
+
+  .m-value {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-title {
+    font-size: 1.75rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .trending-item {
+    padding: 1rem;
+  }
+
+  .trending-symbol {
+    font-size: 0.9rem;
+  }
+
+  .tooltip-text {
+    width: 160px;
+    left: 0;
+    transform: translateX(0);
+  }
+  
+  .tooltip-text::after {
+    left: 20px;
+  }
+}
