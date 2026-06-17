@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Search, TrendingUp, ShieldAlert, LineChart, Star, Newspaper, Activity, Zap, ArrowUpRight } from 'lucide-react';
+import { Search, TrendingUp, ShieldAlert, LineChart, Star, Newspaper, Activity, Zap, ArrowUpRight, Info } from 'lucide-react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -100,6 +100,28 @@ interface IndexData {
   price: number;
   change: number;
 }
+
+const METRIC_EXPLANATIONS: Record<string, string> = {
+  'Share Price': 'The current price of a single share of the company.',
+  '52-Week Range': 'The highest and lowest price the stock has reached over the last 52 weeks.',
+  'Market Cap': "Total market value of a company's outstanding shares (Price x Total Shares).",
+  'P/E Ratio': 'Price-to-Earnings ratio. Measures current share price relative to per-share earnings. High P/E could mean overvalued or high growth.',
+  'Price / Book': "Compares a firm's market capitalization to its book value.",
+  'Price / Sales': "Compares a company's stock price to its revenues.",
+  'EPS Est.': 'Earnings Per Share Estimate. The portion of a company\'s profit allocated to each outstanding share of common stock.',
+  'Analyst Avg Target': 'The average price target set by financial analysts for the stock.',
+  'Open Interest': 'The total number of outstanding derivative contracts that have not been settled.',
+  'Avg Volume': 'The average number of shares traded per day.',
+  'Daily Volume': 'The number of shares or contracts traded in a single day.',
+  'Day High': 'The highest price at which a stock traded during the course of the trading day.',
+  'Day Low': 'The lowest price at which a stock traded during the course of the trading day.',
+  'Expiry Date': 'The date on which a derivative contract (like a future) expires.',
+  '3M Growth': 'Percentage growth over the last 3 months.',
+  'Prev. Close': 'The final price at which a security traded on the previous trading day.',
+  'SMA 20': '20-day Simple Moving Average. Average price over the last 20 days. Used to identify short-term trends.',
+  'RSI 14': 'Relative Strength Index (14-day). Measures the speed and change of price movements. Above 70 is overbought, below 30 is oversold.',
+  'MACD': 'Moving Average Convergence Divergence. A trend-following momentum indicator that shows the relationship between two moving averages of a security’s price.',
+};
 
 function App() {
   const [query, setQuery] = useState('');
@@ -228,6 +250,8 @@ function App() {
 
   const MetricCard = ({ title, metric, type }: { title: string, metric: Metric, type?: string }) => {
     let displayTitle = title;
+    let explanationKey = title;
+
     if (type === 'FUTURE' || type === 'INDEX') {
       if (title === 'Market Cap') displayTitle = type === 'FUTURE' ? 'Open Interest' : 'Avg Volume';
       if (title === 'P/E Ratio') displayTitle = 'Daily Volume';
@@ -235,11 +259,24 @@ function App() {
       if (title === 'Price / Sales') displayTitle = 'Day Low';
       if (title.includes('EPS Est.')) displayTitle = type === 'FUTURE' ? 'Expiry Date' : '3M Growth';
       if (title === 'Analyst Avg Target') displayTitle = 'Prev. Close';
+      explanationKey = displayTitle;
+    } else if (title.includes('EPS Est.')) {
+      explanationKey = 'EPS Est.';
     }
+
+    const explanation = METRIC_EXPLANATIONS[explanationKey];
 
     return (
       <div className={`metric-card glass-panel`}>
-        <div className="m-label">{displayTitle}</div>
+        <div className="m-label">
+          {displayTitle}
+          {explanation && (
+            <div className="info-tooltip-container">
+              <Info size={12} className="info-icon" />
+              <div className="tooltip-text">{explanation}</div>
+            </div>
+          )}
+        </div>
         <div className={`m-value ${metric.sentiment}`}>{metric.value}</div>
         <div className={`m-subtext ${metric.sentiment}`}>{metric.comment}</div>
       </div>
@@ -526,21 +563,39 @@ function App() {
                 <div className="tab-content fade-in space-y-6">
                   <div className="technicals-grid">
                     <div className="glass-panel tech-card">
-                      <div className="tech-label">SMA 20</div>
+                      <div className="tech-label">
+                        SMA 20
+                        <div className="info-tooltip-container">
+                          <Info size={12} className="info-icon" />
+                          <div className="tooltip-text">{METRIC_EXPLANATIONS['SMA 20']}</div>
+                        </div>
+                      </div>
                       <div className="tech-value">{stock.technicalSignals.sma20.value}</div>
                       <span className={`tech-badge ${stock.technicalSignals.sma20.signal.toLowerCase()}`}>
                         {stock.technicalSignals.sma20.signal}
                       </span>
                     </div>
                     <div className="glass-panel tech-card">
-                      <div className="tech-label">RSI 14</div>
+                      <div className="tech-label">
+                        RSI 14
+                        <div className="info-tooltip-container">
+                          <Info size={12} className="info-icon" />
+                          <div className="tooltip-text">{METRIC_EXPLANATIONS['RSI 14']}</div>
+                        </div>
+                      </div>
                       <div className="tech-value">{stock.technicalSignals.rsi14.value}</div>
                       <span className={`tech-badge ${stock.technicalSignals.rsi14.signal.toLowerCase()}`}>
                         {stock.technicalSignals.rsi14.signal}
                       </span>
                     </div>
                     <div className="glass-panel tech-card">
-                      <div className="tech-label">MACD</div>
+                      <div className="tech-label">
+                        MACD
+                        <div className="info-tooltip-container">
+                          <Info size={12} className="info-icon" />
+                          <div className="tooltip-text">{METRIC_EXPLANATIONS['MACD']}</div>
+                        </div>
+                      </div>
                       <div className="tech-value">{stock.technicalSignals.macd.value}</div>
                       <span className={`tech-badge ${stock.technicalSignals.macd.signal.toLowerCase()}`}>
                         {stock.technicalSignals.macd.signal}
