@@ -532,10 +532,12 @@ function App() {
                 <MetricCard title="Analyst Avg Target" metric={stock.analystTarget} type={stock.quoteType} />
               </div>
 
-              <div className="tab-navigation-premium">
-                <button className={`tab-link ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
-                <button className={`tab-link ${activeTab === 'technicals' ? 'active' : ''}`} onClick={() => setActiveTab('technicals')}>Technicals</button>
-                <button className={`tab-link ${activeTab === 'news' ? 'active' : ''}`} onClick={() => setActiveTab('news')}>News</button>
+              <div className="tabs-outer-container">
+                <div className="tab-navigation-premium">
+                  <button className={`tab-link ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
+                  <button className={`tab-link ${activeTab === 'technicals' ? 'active' : ''}`} onClick={() => setActiveTab('technicals')}>Technicals</button>
+                  <button className={`tab-link ${activeTab === 'news' ? 'active' : ''}`} onClick={() => setActiveTab('news')}>News</button>
+                </div>
               </div>
 
               {activeTab === 'overview' && (
