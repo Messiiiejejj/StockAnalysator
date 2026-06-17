@@ -123,6 +123,8 @@ const METRIC_EXPLANATIONS: Record<string, string> = {
   'MACD': 'Moving Average Convergence Divergence. A trend-following momentum indicator that shows the relationship between two moving averages of a security’s price.',
 };
 
+const API_BASE_URL = 'https://stock-market-backend-6i4h.onrender.com/api';
+
 function App() {
   const [query, setQuery] = useState('');
   const [stock, setStock] = useState<StockData | null>(null);
@@ -162,7 +164,7 @@ function App() {
 
   const fetchIndices = async () => {
     try {
-      const response = await axios.get('https://stock-market-backend-6i4h.onrender.com/api/indices');
+      const response = await axios.get(`${API_BASE_URL}/indices`);
       if (response.data && response.data.length > 0) {
         setIndices(response.data);
       }
@@ -174,7 +176,7 @@ function App() {
   const fetchFavoritesData = async () => {
     try {
       const results = await Promise.all(
-        favorites.map(s => axios.get(`https://stock-market-backend-6i4h.onrender.com/api/stock/${s}`).catch(() => null))
+        favorites.map(s => axios.get(`${API_BASE_URL}/stock/${s}`).catch(() => null))
       );
       const data = results
         .filter(r => r !== null && r.data)
@@ -201,7 +203,7 @@ function App() {
 
   const fetchTrending = async () => {
     try {
-      const response = await axios.get('https://stock-market-backend-6i4h.onrender.com/api/trending');
+      const response = await axios.get(`${API_BASE_URL}/trending`);
       setTrending(response.data);
     } catch (err) {
       console.error('Failed to fetch trending', err);
@@ -210,7 +212,7 @@ function App() {
 
   const fetchGainers = async () => {
     try {
-      const response = await axios.get('https://stock-market-backend-6i4h.onrender.com/api/gainers');
+      const response = await axios.get(`${API_BASE_URL}/gainers`);
       setGainers(response.data);
     } catch (err) {
       console.error('Failed to fetch gainers', err);
@@ -219,7 +221,7 @@ function App() {
 
   const fetchLosers = async () => {
     try {
-      const response = await axios.get('https://stock-market-backend-6i4h.onrender.com/api/losers');
+      const response = await axios.get(`${API_BASE_URL}/losers`);
       setLosers(response.data);
     } catch (err) {
       console.error('Failed to fetch losers', err);
@@ -228,7 +230,7 @@ function App() {
 
   const fetchMarketNews = async () => {
     try {
-      const response = await axios.get('https://stock-market-backend-6i4h.onrender.com/api/market-news');
+      const response = await axios.get(`${API_BASE_URL}/market-news`);
       setMarketNews(response.data);
     } catch (err) {
       console.error('Failed to fetch market news', err);
@@ -242,7 +244,7 @@ function App() {
     setChartTimeframe('1Y');
     window.scrollTo({ top: 0, behavior: 'smooth' });
     try {
-      const response = await axios.get(`https://stock-market-backend-6i4h.onrender.com/api/stock/${symbol}`);
+      const response = await axios.get(`${API_BASE_URL}/stock/${symbol}`);
       setStock(response.data);
     } catch (err) {
       setError('Stock not found. Please try another ticker or company name.');
