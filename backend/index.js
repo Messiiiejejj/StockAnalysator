@@ -480,32 +480,92 @@ app.get('/api/market-news', async (req, res) => {
 app.get('/api/gainers', async (req, res) => {
     try {
         const result = await yahooFinance.dailyGainers({ count: 5, region: 'US' });
-        const gainers = (result.quotes || []).map(q => ({
+        let gainers = (result.quotes || []).map(q => ({
             symbol: q.symbol,
             name: q.shortName || q.longName,
             price: q.regularMarketPrice,
             change: q.regularMarketChangePercent
         }));
+
+        if (gainers.length === 0) {
+            const symbols = ['NVDA', 'TSLA', 'AMD', 'AAPL', 'MSFT'];
+            const quotes = await Promise.all(symbols.map(s => yahooFinance.quote(s).catch(() => null)));
+            gainers = quotes
+                .filter(q => q !== null)
+                .map(q => ({
+                    symbol: q.symbol,
+                    name: q.shortName || q.longName,
+                    price: q.regularMarketPrice,
+                    change: q.regularMarketChangePercent
+                }))
+                .sort((a, b) => b.change - a.change);
+        }
         res.json(gainers);
     } catch (error) {
         console.error('Failed to fetch gainers:', error);
-        res.status(500).json({ error: 'Failed to fetch gainers' });
+        // Fallback
+        const symbols = ['NVDA', 'TSLA', 'AMD', 'AAPL', 'MSFT'];
+        try {
+            const quotes = await Promise.all(symbols.map(s => yahooFinance.quote(s).catch(() => null)));
+            const gainers = quotes
+                .filter(q => q !== null)
+                .map(q => ({
+                    symbol: q.symbol,
+                    name: q.shortName || q.longName,
+                    price: q.regularMarketPrice,
+                    change: q.regularMarketChangePercent
+                }))
+                .sort((a, b) => b.change - a.change);
+            res.json(gainers);
+        } catch (e) {
+            res.status(500).json({ error: 'Failed to fetch gainers' });
+        }
     }
 });
 
 app.get('/api/losers', async (req, res) => {
     try {
         const result = await yahooFinance.dailyLosers({ count: 5, region: 'US' });
-        const losers = (result.quotes || []).map(q => ({
+        let losers = (result.quotes || []).map(q => ({
             symbol: q.symbol,
             name: q.shortName || q.longName,
             price: q.regularMarketPrice,
             change: q.regularMarketChangePercent
         }));
+
+        if (losers.length === 0) {
+            const symbols = ['INTC', 'PYPL', 'DIS', 'BA', 'NKE'];
+            const quotes = await Promise.all(symbols.map(s => yahooFinance.quote(s).catch(() => null)));
+            losers = quotes
+                .filter(q => q !== null)
+                .map(q => ({
+                    symbol: q.symbol,
+                    name: q.shortName || q.longName,
+                    price: q.regularMarketPrice,
+                    change: q.regularMarketChangePercent
+                }))
+                .sort((a, b) => a.change - b.change);
+        }
         res.json(losers);
     } catch (error) {
         console.error('Failed to fetch losers:', error);
-        res.status(500).json({ error: 'Failed to fetch losers' });
+        // Fallback
+        const symbols = ['INTC', 'PYPL', 'DIS', 'BA', 'NKE'];
+        try {
+            const quotes = await Promise.all(symbols.map(s => yahooFinance.quote(s).catch(() => null)));
+            const losers = quotes
+                .filter(q => q !== null)
+                .map(q => ({
+                    symbol: q.symbol,
+                    name: q.shortName || q.longName,
+                    price: q.regularMarketPrice,
+                    change: q.regularMarketChangePercent
+                }))
+                .sort((a, b) => a.change - b.change);
+            res.json(losers);
+        } catch (e) {
+            res.status(500).json({ error: 'Failed to fetch losers' });
+        }
     }
 });
 
