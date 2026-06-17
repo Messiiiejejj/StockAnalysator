@@ -2,6 +2,15 @@ const express = require('express');
 const cors = require('cors');
 const YahooFinance = require('yahoo-finance2').default;
 const yahooFinance = new YahooFinance();
+
+// Disable validation to prevent screener API from failing on unexpected Yahoo fields
+yahooFinance.setGlobalConfig({
+    validation: {
+        logErrors: false,
+        throwErrors: false
+    }
+});
+
 const finnhub = require('finnhub');
 require('dotenv').config();
 
