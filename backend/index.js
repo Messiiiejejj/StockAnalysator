@@ -413,7 +413,7 @@ app.get('/api/stock/:symbol', async (req, res) => {
 app.get('/api/movers', async (req, res) => {
     try {
         // Fetch top gainers from Yahoo Finance screener
-        const result = await yahooFinance.dailyGainers({ count: 10, region: 'US' });
+        const result = await yahooFinance.screener({ scrIds: 'day_gainers', count: 10, region: 'US' });
         const movers = (result.quotes || []).map(q => ({
             symbol: q.symbol,
             name: q.shortName || q.longName,
@@ -479,7 +479,7 @@ app.get('/api/market-news', async (req, res) => {
 
 app.get('/api/gainers', async (req, res) => {
     try {
-        const result = await yahooFinance.dailyGainers({ count: 20, region: 'US' });
+        const result = await yahooFinance.screener({ scrIds: 'day_gainers', count: 5, region: 'US' });
         let gainers = (result.quotes || [])
             .filter(q => q.regularMarketChangePercent > 0)
             .map(q => ({
@@ -492,15 +492,11 @@ app.get('/api/gainers', async (req, res) => {
             .slice(0, 5);
 
         if (gainers.length === 0) {
-            // Fallback to a much broader set of stocks to find SOME gainers
-            const symbols = [
-                'NVDA', 'TSLA', 'AMD', 'AAPL', 'MSFT', 'META', 'GOOGL', 'AMZN', 'NFLX', 'PLTR',
-                'AMD', 'AVGO', 'COST', 'ADBE', 'LIN', 'TXN', 'INTU', 'AMAT', 'QCOM', 'ISRG',
-                'SBUX', 'MDLZ', 'GILD', 'BKNG', 'VRTX', 'REGN', 'ADP', 'MU', 'PANW', 'SNPS'
-            ];
-            const quotes = await Promise.all(symbols.map(s => yahooFinance.quote(s).catch(() => null)));
+            // Fallback: Manually check a diverse pool of stocks if screener fails
+            const pool = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'NFLX', 'AMD', 'AVGO', 'COST', 'ADBE'];
+            const quotes = await Promise.all(pool.map(s => yahooFinance.quote(s).catch(() => null)));
             gainers = quotes
-                .filter(q => q !== null && q.regularMarketChangePercent !== undefined && q.regularMarketChangePercent > 0)
+                .filter(q => q !== null && q.regularMarketChangePercent > 0)
                 .map(q => ({
                     symbol: q.symbol,
                     name: q.shortName || q.longName,
@@ -519,9 +515,9 @@ app.get('/api/gainers', async (req, res) => {
 
 app.get('/api/losers', async (req, res) => {
     try {
-        const result = await yahooFinance.dailyLosers({ count: 20, region: 'US' });
+        const result = await yahooFinance.screener({ scrIds: 'day_losers', count: 5, region: 'US' });
         let losers = (result.quotes || [])
-            .filter(q => q.regularMarketChangePercent !== undefined && q.regularMarketChangePercent < 0)
+            .filter(q => q.regularMarketChangePercent < 0)
             .map(q => ({
                 symbol: q.symbol,
                 name: q.shortName || q.longName,
@@ -532,15 +528,11 @@ app.get('/api/losers', async (req, res) => {
             .slice(0, 5);
 
         if (losers.length === 0) {
-            // Fallback to a much broader set of stocks to find SOME losers
-            const symbols = [
-                'INTC', 'PYPL', 'DIS', 'BA', 'NKE', 'COIN', 'MSTR', 'SHOP', 'GME', 'AMC',
-                'XOM', 'CVX', 'JPM', 'BAC', 'WFC', 'C', 'PFE', 'ABBV', 'MRK', 'UNH',
-                'HD', 'LOW', 'T', 'VZ', 'KO', 'PEP', 'PG', 'WMT', 'TGT', 'F'
-            ];
-            const quotes = await Promise.all(symbols.map(s => yahooFinance.quote(s).catch(() => null)));
+            // Fallback: Manually check a diverse pool of stocks if screener fails
+            const pool = ['INTC', 'PYPL', 'DIS', 'BA', 'NKE', 'COIN', 'MSTR', 'SHOP', 'GME', 'AMC', 'XOM', 'CVX'];
+            const quotes = await Promise.all(pool.map(s => yahooFinance.quote(s).catch(() => null)));
             losers = quotes
-                .filter(q => q !== null && q.regularMarketChangePercent !== undefined && q.regularMarketChangePercent < 0)
+                .filter(q => q !== null && q.regularMarketChangePercent < 0)
                 .map(q => ({
                     symbol: q.symbol,
                     name: q.shortName || q.longName,
