@@ -186,19 +186,13 @@ function App() {
   };
 
   const fetchFavoritesData = async () => {
+    if (favorites.length === 0) {
+      setFavData([]);
+      return;
+    }
     try {
-      const results = await Promise.all(
-        favorites.map(s => axios.get(`${API_BASE_URL}/stock/${s}`).catch(() => null))
-      );
-      const data = results
-        .filter(r => r !== null && r.data)
-        .map(r => ({
-          symbol: r?.data?.symbol || '',
-          name: r?.data?.companyName || '',
-          price: parseFloat(r?.data?.price?.value?.replace('$', '').replace(',', '') || '0'),
-          change: parseFloat(r?.data?.price?.change || '0')
-        }));
-      setFavData(data);
+      const response = await axios.get(`${API_BASE_URL}/quotes?symbols=${favorites.join(',')}`);
+      setFavData(response.data);
     } catch (err) {
       console.error('Failed to fetch favorites data', err);
     }
@@ -419,6 +413,23 @@ function App() {
           ))}
         </div>
       </div>
+
+      {/* Favorites Bar */}
+      {favData.length > 0 && (
+        <div className="favorites-bar-container">
+          <div className="favorites-bar-content">
+            {favData.map((s) => (
+              <div key={s.symbol} className="fav-bar-item" onClick={() => fetchStock(s.symbol)}>
+                <span className="fav-bar-symbol">{s.symbol}</span>
+                <span className="fav-bar-price">${s.price.toFixed(2)}</span>
+                <span className={`fav-bar-change ${s.change >= 0 ? 'positive' : 'negative'}`}>
+                  {s.change >= 0 ? '+' : ''}{s.change.toFixed(2)}%
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <header className="header sticky-header glass-panel">
         <div className="logo" onClick={() => { setStock(null); setError(''); }} style={{ cursor: 'pointer' }}>NexTrade<span>.</span></div>
@@ -714,28 +725,6 @@ function App() {
 
           {!stock && !loading && !error && (
             <div className="welcome-state fade-in">
-              {favData.length > 0 && (
-                <div className="favorites-section" style={{ marginBottom: '2rem' }}>
-                  <div className="home-dashboard-header">
-                    <Star size={20} className="header-icon" style={{ color: 'var(--accent-blue)', fill: 'var(--accent-blue)' }} />
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: '800' }}>Favorites</h2>
-                  </div>
-                  <div className="favorites-grid-dense">
-                    {favData.map((s) => (
-                      <div key={s.symbol} className="trending-item fav-item-compact glass-panel" onClick={() => fetchStock(s.symbol)}>
-                        <span className="trending-symbol">{s.symbol}</span>
-                        <div style={{ textAlign: 'right' }}>
-                          <div className={`trending-price ${s.change >= 0 ? 'positive' : 'negative'}`}>${s.price.toFixed(2)}</div>
-                          <span className={`trending-change ${s.change >= 0 ? 'positive' : 'negative'}`}>
-                            {s.change >= 0 ? '+' : ''}{s.change.toFixed(2)}%
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               <div className="home-dashboard-header">
                 <Newspaper size={20} className="header-icon" style={{ color: 'var(--accent-blue)' }} />
                 <h2 style={{ fontSize: '1.5rem', fontWeight: '800' }}>Global Market News</h2>

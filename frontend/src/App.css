@@ -58,6 +58,72 @@ body {
   margin-top: 1.5rem;
 }
 
+/* Horizontal Favorites Bar */
+.favorites-bar-container {
+  width: calc(100% + 3rem);
+  margin-left: -1.5rem;
+  padding: 0.75rem 0;
+  background: rgba(15, 23, 42, 0.4);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  z-index: 999;
+}
+
+@media (max-width: 768px) {
+  .favorites-bar-container {
+    width: calc(100% + 2rem);
+    margin-left: -1rem;
+  }
+}
+
+.favorites-bar-container::-webkit-scrollbar {
+  display: none;
+}
+
+.favorites-bar-content {
+  display: flex;
+  gap: 1rem;
+  padding: 0 1.5rem;
+}
+
+.fav-bar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  padding: 0.4rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.fav-bar-item:hover {
+  border-color: var(--accent-blue);
+  background: var(--card-hover);
+  transform: translateY(-2px);
+}
+
+.fav-bar-symbol {
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+}
+
+.fav-bar-price {
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+}
+
+.fav-bar-change {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
 .fav-item-compact {
   /* Inherits from trending-item */
 }

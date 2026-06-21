@@ -92,23 +92,22 @@ const getCandles = (symbol, resolution, from, to) => {
 const getChartData = async (symbol) => {
     return withCache(`chart_${symbol}`, async () => {
         try {
-            let yahooSymbol = symbol;
-            if (symbol === 'BINANCE:BTCUSDT') yahooSymbol = 'BTC-USD';
-            if (symbol === 'SPY') yahooSymbol = '^GSPC';
-            if (symbol === 'QQQ') yahooSymbol = '^IXIC';
-            if (symbol === 'DIA') yahooSymbol = '^DJI';
-            if (symbol === 'IWM') yahooSymbol = '^RUT';
+            const to = Math.floor(Date.now() / 1000);
+            const from = symbol === 'BINANCE:BTCUSDT' ? to - (30 * 24 * 60 * 60) : to - (365 * 24 * 60 * 60);
+            const resolution = 'D';
             
-            const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=1y&interval=1d`);
-            const data = await res.json();
-            const result = data.chart.result[0];
-            const timestamps = result.timestamp;
-            const closes = result.indicators.quote[0].close;
-            
-            return timestamps.map((t, i) => ({
-                date: new Date(t * 1000).toISOString().split('T')[0],
-                close: closes[i] || 0
-            })).filter(d => d.close > 0);
+            return new Promise((resolve) => {
+                finnhubClient.stockCandles(symbol, resolution, from, to, (error, data) => {
+                    if (error || !data || data.s === "no_data") resolve([]);
+                    else {
+                        const formatted = data.t.map((t, i) => ({
+                            date: new Date(t * 1000).toISOString().split('T')[0],
+                            close: data.c[i]
+                        }));
+                        resolve(formatted);
+                    }
+                });
+            });
         } catch (e) {
             return [];
         }
@@ -147,7 +146,7 @@ app.get('/api/indices', async (req, res) => {
     try {
         // Using ETF proxies because Finnhub free tier doesn't support raw indices well
         const symbols = ['SPY', 'QQQ', 'DIA', 'IWM', 'BINANCE:BTCUSDT', 'GLD'];
-        const names = { 'SPY': 'S&P 500 (ETF)', 'QQQ': 'NASDAQ (ETF)', 'DIA': 'DOW JONES (ETF)', 'IWM': 'RUSSELL 2000 (ETF)', 'BINANCE:BTCUSDT': 'BITCOIN', 'GLD': 'GOLD (ETF)' };
+        const names = { 'SPY': 'S&P 500', 'QQQ': 'NASDAQ 100', 'DIA': 'DOW JONES', 'IWM': 'RUSSELL 2000', 'BINANCE:BTCUSDT': 'BITCOIN', 'GLD': 'GOLD' };
         
         const quotes = await Promise.all(symbols.map(async s => {
             const q = await getQuote(s);
@@ -167,8 +166,8 @@ app.get('/api/indices', async (req, res) => {
 
 app.get('/api/trending', async (req, res) => {
     try {
-        const symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX', 'BRK.B', 'AMD'];
-        const names = { 'AAPL': 'Apple', 'MSFT': 'Microsoft', 'GOOGL': 'Alphabet', 'AMZN': 'Amazon', 'TSLA': 'Tesla', 'NVDA': 'NVIDIA', 'META': 'Meta', 'NFLX': 'Netflix', 'BRK.B': 'Berkshire Hathaway', 'AMD': 'AMD' };
+        const symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX', 'BRK.B', 'AMD', 'JPM', 'V', 'UNH', 'MA', 'PG'];
+        const names = { 'AAPL': 'Apple', 'MSFT': 'Microsoft', 'GOOGL': 'Alphabet', 'AMZN': 'Amazon', 'TSLA': 'Tesla', 'NVDA': 'NVIDIA', 'META': 'Meta', 'NFLX': 'Netflix', 'BRK.B': 'Berkshire Hathaway', 'AMD': 'AMD', 'JPM': 'JPMorgan', 'V': 'Visa', 'UNH': 'UnitedHealth', 'MA': 'Mastercard', 'PG': 'Procter & Gamble' };
         
         const quotes = await Promise.all(symbols.map(async s => {
             const q = await getQuote(s);
@@ -188,8 +187,19 @@ app.get('/api/trending', async (req, res) => {
 
 app.get('/api/market-news', async (req, res) => {
     try {
+        // We fetch news for major symbols to get more relevant "stock market" news
         const news = await getMarketNews('general');
-        const formattedNews = news.map(n => {
+        
+        // Filter news that mentions financial keywords or symbols
+        const stockKeywords = ['stock', 'market', 'nasdaq', 's&p', 'dow', 'invest', 'earnings', 'fed', 'rate', 'price', 'dividend', 'shares', 'sec'];
+        const relevantNews = news.filter(n => {
+            const text = (n.headline + (n.summary || '')).toLowerCase();
+            return stockKeywords.some(kw => text.includes(kw)) || (n.related && n.related !== '');
+        });
+
+        const displayNews = relevantNews.length > 5 ? relevantNews : news;
+
+        const formattedNews = displayNews.map(n => {
             const hasBadImage = n.image && (n.image.includes('yahoo_finance') || n.image.includes('reuters'));
             return {
                 title: n.headline,
@@ -198,18 +208,16 @@ app.get('/api/market-news', async (req, res) => {
                 date: new Date(n.datetime * 1000).toLocaleDateString(),
                 image: hasBadImage ? null : (n.image || null)
             };
-        }).filter(n => n.image !== null).slice(0, 9);
+        }).filter(n => n.image !== null).slice(0, 12);
         
-        // If we don't have enough with images, just get the top 9 regardless
-        if (formattedNews.length < 9) {
-            const allNews = news.slice(0, 9).map(n => ({
+        if (formattedNews.length < 6) {
+            res.json(news.slice(0, 12).map(n => ({
                 title: n.headline,
                 publisher: n.source,
                 link: n.url,
                 date: new Date(n.datetime * 1000).toLocaleDateString(),
                 image: (n.image && !n.image.includes('yahoo_finance') && !n.image.includes('reuters')) ? n.image : null
-            }));
-            res.json(allNews);
+            })));
         } else {
             res.json(formattedNews);
         }
@@ -220,20 +228,30 @@ app.get('/api/market-news', async (req, res) => {
 
 // Helper for movers
 const getMoversPool = async () => {
-    const pool = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'NFLX', 'AMD', 'AVGO', 'COST', 'ADBE', 'INTC', 'PYPL', 'DIS', 'BA', 'NKE', 'COIN', 'SHOP', 'CRM'];
-    const quotes = await Promise.all(pool.map(async s => {
+    const pool = [
+        'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'NFLX', 'AMD', 'AVGO', 
+        'COST', 'ADBE', 'INTC', 'PYPL', 'DIS', 'BA', 'NKE', 'COIN', 'SHOP', 'CRM',
+        'PLTR', 'SNOW', 'MSTR', 'SQ', 'ROKU', 'U', 'AFRM', 'UPST', 'COIN', 'HOOD',
+        'AI', 'BABA', 'JD', 'PDD', 'NIO', 'XPEV', 'LI', 'TSM', 'ASML', 'ARM',
+        'SMCI', 'MU', 'AMAT', 'LRCX', 'KLAC', 'PANW', 'CRWD', 'FTNT', 'ZS', 'OKTA',
+        'AMD', 'GME', 'AMC', 'MARA', 'RIOT', 'CLSK', 'COIN', 'SOFI', 'PFE', 'MRNA'
+    ];
+    // Remove duplicates
+    const uniquePool = [...new Set(pool)];
+    
+    const quotes = await Promise.all(uniquePool.map(async s => {
         const q = await getQuote(s);
-        const p = await getProfile(s); // need name
         if (!q) return null;
         return {
             symbol: s,
-            name: p.name || s,
             price: q.c,
             change: q.dp || 0
         };
     }));
     return quotes.filter(q => q !== null);
 };
+
+
 
 app.get('/api/gainers', async (req, res) => {
     try {
@@ -262,6 +280,26 @@ app.get('/api/movers', async (req, res) => {
         res.json(movers);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch movers' });
+    }
+});
+
+app.get('/api/quotes', async (req, res) => {
+    try {
+        const symbols = req.query.symbols ? req.query.symbols.split(',') : [];
+        if (symbols.length === 0) return res.json([]);
+        
+        const quotes = await Promise.all(symbols.map(async s => {
+            const q = await getQuote(s);
+            if (!q) return null;
+            return {
+                symbol: s,
+                price: q.c,
+                change: q.dp || 0
+            };
+        }));
+        res.json(quotes.filter(q => q !== null));
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch quotes' });
     }
 });
 
