@@ -10,8 +10,22 @@ const finnhubClient = new finnhub.DefaultApi();
 finnhubClient.apiKey = process.env.FINNHUB_API_KEY;
 
 // HELPER FUNCTIONS FOR FINNHUB
+const cache = {};
+const CACHE_TTL = 60000; // 60 seconds
+
+const withCache = async (key, fetchFn, ttl = CACHE_TTL) => {
+    if (cache[key] && cache[key].timestamp + ttl > Date.now()) {
+        return cache[key].data;
+    }
+    const data = await fetchFn();
+    if (data && (!Array.isArray(data) || data.length > 0)) {
+        cache[key] = { data, timestamp: Date.now() };
+    }
+    return data;
+};
+
 const getQuote = (symbol) => {
-    return new Promise((resolve) => {
+    return withCache(`quote_${symbol}`, () => new Promise((resolve) => {
         try {
             finnhubClient.quote(symbol, (error, data) => {
                 if (error || !data || (data.c === 0 && data.h === 0)) resolve(null);
@@ -20,11 +34,11 @@ const getQuote = (symbol) => {
         } catch (e) {
             resolve(null);
         }
-    });
+    }), 30000); // 30s cache for quotes
 };
 
 const getProfile = (symbol) => {
-    return new Promise((resolve) => {
+    return withCache(`profile_${symbol}`, () => new Promise((resolve) => {
         try {
             finnhubClient.companyProfile2({ symbol }, (error, data) => {
                 if (error || !data) resolve({});
@@ -33,11 +47,11 @@ const getProfile = (symbol) => {
         } catch (e) {
             resolve({});
         }
-    });
+    }), 3600000); // 1 hour cache for profile
 };
 
 const getFinancials = (symbol) => {
-    return new Promise((resolve) => {
+    return withCache(`financials_${symbol}`, () => new Promise((resolve) => {
         try {
             finnhubClient.companyBasicFinancials(symbol, "all", (error, data) => {
                 if (error || !data) resolve({});
@@ -46,11 +60,11 @@ const getFinancials = (symbol) => {
         } catch (e) {
             resolve({});
         }
-    });
+    }), 3600000); // 1 hour cache for financials
 };
 
 const getCompanyNews = (symbol, from, to) => {
-    return new Promise((resolve) => {
+    return withCache(`news_${symbol}`, () => new Promise((resolve) => {
         try {
             finnhubClient.companyNews(symbol, from, to, (error, data) => {
                 if (error || !data) resolve([]);
@@ -59,11 +73,11 @@ const getCompanyNews = (symbol, from, to) => {
         } catch (e) {
             resolve([]);
         }
-    });
+    }), 300000); // 5 min cache for news
 };
 
 const getCandles = (symbol, resolution, from, to) => {
-    return new Promise((resolve) => {
+    return withCache(`candles_${symbol}`, () => new Promise((resolve) => {
         try {
             finnhubClient.stockCandles(symbol, resolution, from, to, (error, data) => {
                 if (error || !data || data.s === "no_data") resolve({ t: [], c: [] });
@@ -72,11 +86,11 @@ const getCandles = (symbol, resolution, from, to) => {
         } catch (e) {
             resolve({ t: [], c: [] });
         }
-    });
+    }), 300000); // 5 min cache for candles
 };
 
 const getPeers = (symbol) => {
-    return new Promise((resolve) => {
+    return withCache(`peers_${symbol}`, () => new Promise((resolve) => {
         try {
             finnhubClient.companyPeers(symbol, {}, (error, data) => {
                 if (error || !data) resolve(['AAPL', 'MSFT', 'GOOGL', 'AMZN']);
@@ -85,11 +99,11 @@ const getPeers = (symbol) => {
         } catch (e) {
             resolve(['AAPL', 'MSFT', 'GOOGL', 'AMZN']);
         }
-    });
+    }), 3600000); // 1 hour cache for peers
 };
 
 const getMarketNews = (category) => {
-    return new Promise((resolve) => {
+    return withCache(`marketnews_${category}`, () => new Promise((resolve) => {
         try {
             finnhubClient.marketNews(category, {}, (error, data) => {
                 if (error || !data) resolve([]);
@@ -98,7 +112,7 @@ const getMarketNews = (category) => {
         } catch (e) {
             resolve([]);
         }
-    });
+    }), 300000); // 5 min cache for market news
 };
 
 // ENDPOINTS
