@@ -89,6 +89,32 @@ const getCandles = (symbol, resolution, from, to) => {
     }), 300000); // 5 min cache for candles
 };
 
+const getChartData = async (symbol) => {
+    return withCache(`chart_${symbol}`, async () => {
+        try {
+            let yahooSymbol = symbol;
+            if (symbol === 'BINANCE:BTCUSDT') yahooSymbol = 'BTC-USD';
+            if (symbol === 'SPY') yahooSymbol = '^GSPC';
+            if (symbol === 'QQQ') yahooSymbol = '^IXIC';
+            if (symbol === 'DIA') yahooSymbol = '^DJI';
+            if (symbol === 'IWM') yahooSymbol = '^RUT';
+            
+            const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=1y&interval=1d`);
+            const data = await res.json();
+            const result = data.chart.result[0];
+            const timestamps = result.timestamp;
+            const closes = result.indicators.quote[0].close;
+            
+            return timestamps.map((t, i) => ({
+                date: new Date(t * 1000).toISOString().split('T')[0],
+                close: closes[i] || 0
+            })).filter(d => d.close > 0);
+        } catch (e) {
+            return [];
+        }
+    }, 3600000); // 1 hour cache
+};
+
 const getPeers = (symbol) => {
     return withCache(`peers_${symbol}`, () => new Promise((resolve) => {
         try {
@@ -163,14 +189,30 @@ app.get('/api/trending', async (req, res) => {
 app.get('/api/market-news', async (req, res) => {
     try {
         const news = await getMarketNews('general');
-        const formattedNews = news.slice(0, 22).map(n => ({
-            title: n.headline,
-            publisher: n.source,
-            link: n.url,
-            date: new Date(n.datetime * 1000).toLocaleDateString(),
-            image: n.image || null
-        }));
-        res.json(formattedNews);
+        const formattedNews = news.map(n => {
+            const hasBadImage = n.image && (n.image.includes('yahoo_finance') || n.image.includes('reuters'));
+            return {
+                title: n.headline,
+                publisher: n.source,
+                link: n.url,
+                date: new Date(n.datetime * 1000).toLocaleDateString(),
+                image: hasBadImage ? null : (n.image || null)
+            };
+        }).filter(n => n.image !== null).slice(0, 9);
+        
+        // If we don't have enough with images, just get the top 9 regardless
+        if (formattedNews.length < 9) {
+            const allNews = news.slice(0, 9).map(n => ({
+                title: n.headline,
+                publisher: n.source,
+                link: n.url,
+                date: new Date(n.datetime * 1000).toLocaleDateString(),
+                image: (n.image && !n.image.includes('yahoo_finance') && !n.image.includes('reuters')) ? n.image : null
+            }));
+            res.json(allNews);
+        } else {
+            res.json(formattedNews);
+        }
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch market news' });
     }
@@ -252,7 +294,7 @@ app.get('/api/stock/:symbol', async (req, res) => {
             getProfile(symbol),
             getFinancials(symbol),
             getCompanyNews(symbol, new Date(fromDate * 1000).toISOString().split('T')[0], new Date(toDate * 1000).toISOString().split('T')[0]),
-            getCandles(symbol, "D", chartFrom, chartTo),
+            getChartData(symbol),
             getPeers(symbol)
         ]);
 
@@ -269,21 +311,18 @@ app.get('/api/stock/:symbol', async (req, res) => {
             return new Date(time * 1000).toLocaleDateString();
         };
 
-        const news = (newsData || []).slice(0, 15).map(n => ({
-            title: n.headline,
-            publisher: n.source,
-            link: n.url,
-            date: getRelativeTime(n.datetime),
-            image: n.image || null
-        }));
+        const news = (newsData || []).slice(0, 15).map(n => {
+            const hasBadImage = n.image && (n.image.includes('yahoo_finance') || n.image.includes('reuters'));
+            return {
+                title: n.headline,
+                publisher: n.source,
+                link: n.url,
+                date: getRelativeTime(n.datetime),
+                image: hasBadImage ? null : (n.image || null)
+            };
+        });
 
-        let chartData = [];
-        if (chartDataRaw.t && chartDataRaw.c) {
-            chartData = chartDataRaw.t.map((timestamp, index) => ({
-                date: new Date(timestamp * 1000).toISOString(),
-                close: chartDataRaw.c[index]
-            }));
-        }
+        let chartData = chartDataRaw || [];
 
         // Fetch peers data
         const peersData = await Promise.all(peersSymbols.map(async (s) => {

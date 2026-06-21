@@ -436,7 +436,7 @@ function App() {
 
       <div className="content-layout">
         <aside className="left-sidebar fade-in">
-          <h3 className="section-title">Top Bullish</h3>
+          <h3 className="section-title">Top Gainers (Popular)</h3>
           <div className="trending-list" style={{ marginBottom: '2.5rem' }}>
             {gainers
               .filter(s => s.change > 0)
@@ -464,7 +464,7 @@ function App() {
             )}
           </div>
 
-          <h3 className="section-title">Top Bearish</h3>
+          <h3 className="section-title">Top Losers (Popular)</h3>
           <div className="trending-list" style={{ marginBottom: isMobile ? '2.5rem' : '0' }}>
             {losers
               .filter(s => s.change < 0)
@@ -714,6 +714,28 @@ function App() {
 
           {!stock && !loading && !error && (
             <div className="welcome-state fade-in">
+              {favData.length > 0 && (
+                <div className="favorites-section" style={{ marginBottom: '2rem' }}>
+                  <div className="home-dashboard-header">
+                    <Star size={20} className="header-icon" style={{ color: 'var(--accent-blue)', fill: 'var(--accent-blue)' }} />
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: '800' }}>Favorites</h2>
+                  </div>
+                  <div className="favorites-grid-dense">
+                    {favData.map((s) => (
+                      <div key={s.symbol} className="trending-item fav-item-compact glass-panel" onClick={() => fetchStock(s.symbol)}>
+                        <span className="trending-symbol">{s.symbol}</span>
+                        <div style={{ textAlign: 'right' }}>
+                          <div className={`trending-price ${s.change >= 0 ? 'positive' : 'negative'}`}>${s.price.toFixed(2)}</div>
+                          <span className={`trending-change ${s.change >= 0 ? 'positive' : 'negative'}`}>
+                            {s.change >= 0 ? '+' : ''}{s.change.toFixed(2)}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="home-dashboard-header">
                 <Newspaper size={20} className="header-icon" style={{ color: 'var(--accent-blue)' }} />
                 <h2 style={{ fontSize: '1.5rem', fontWeight: '800' }}>Global Market News</h2>
@@ -743,25 +765,6 @@ function App() {
                   </a>
                 ))}
               </div>
-
-              {favData.length > 0 && (
-                <div className="favorites-section">
-                  <h3 className="section-title">Favorites</h3>
-                  <div className="favorites-grid-dense">
-                    {favData.map((s) => (
-                      <div key={s.symbol} className="trending-item fav-item-compact glass-panel" onClick={() => fetchStock(s.symbol)}>
-                        <span className="trending-symbol">{s.symbol}</span>
-                        <div style={{ textAlign: 'right' }}>
-                          <div className={`trending-price ${s.change >= 0 ? 'positive' : 'negative'}`}>${s.price.toFixed(2)}</div>
-                          <span className={`trending-change ${s.change >= 0 ? 'positive' : 'negative'}`}>
-                            {s.change >= 0 ? '+' : ''}{s.change.toFixed(2)}%
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
